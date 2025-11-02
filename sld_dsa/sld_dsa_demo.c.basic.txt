@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <openssl/core_names.h>
+#include <openssl/params.h>
+#include <openssl/ec.h>
+
+static void hexdump(const char *label, const unsigned char *buf, size_t len) {
+    printf("%s (%zu bytes): ", label, len);
+    for (size_t i = 0; i < len; i++) printf("%02X", buf[i]);
+    printf("\n");
+}
+
+
+
+static EVP_PKEY *generate_keys(unsigned char *type) {
+ 
+
+    EVP_PKEY *pkey = NULL;
+
+    EVP_PKEY_CTX *kctx = EVP_PKEY_CTX_new_from_name(NULL, type, NULL);
+
+
+    EVP_PKEY_keygen_init(kctx);
+
+    EVP_PKEY_keygen(kctx, &pkey);
+
+
+    printf("Type: %s\n\n",type);
+
+    uint8_t pub[2592], priv[4896];
+    size_t priv_len, pub_len;
+
+
+    EVP_PKEY_get_octet_string_param(pkey, OSSL_PKEY_PARAM_PRIV_KEY,
+                                priv, sizeof(priv), &priv_len);
+    EVP_PKEY_get_octet_string_param(pkey, OSSL_PKEY_PARAM_PUB_KEY,
+                                pub, sizeof(pub), &pub_len);
+
+
+    printf("Private key length: [%d]\n",priv_len);
+    if (priv_len>500) hexdump("Private key (truncated to 500 bytes):",priv,500);
+    else hexdump("Private key:",priv,priv_len);
+
+    printf("\nPublic key length: [%d]\n",pub_len);
+    if (pub_len>500) hexdump("Public key (truncated to 500 bytes):",pub,500);
+    else hexdump("Private key:",pub,pub_len);
+
+
+
+    EVP_PKEY_CTX_free(kctx);
+    return pkey;
+}
+
+void do_sign(EVP_PKEY *pkey, unsigned char *msg, size_t msg_len,unsigned char *type )
+{
+    size_t sig_len;
+    unsigned char *sig = NULL;
+    const OSSL_PARAM params[] = {
+        OSSL_PARAM_octet_string("context-string", (unsigned char *)"Context string", 33),
+        OSSL_PARAM_END
+    };
+    EVP_PKEY_CTX *sctx = EVP_PKEY_CTX_new_from_pkey(NULL, pkey, NULL);
+    EVP_SIGNATURE *sig_alg = EVP_SIGNATURE_fetch(NULL, type, NULL);
+
+    EVP_PKEY_sign_message_init(sctx, sig_alg, params);
+
+    /* Get size of signature */
+    EVP_PKEY_sign(sctx, NULL, &sig_len, msg, msg_len);
+    sig = OPENSSL_zalloc(sig_len);
+    EVP_PKEY_sign(sctx, sig, &sig_len, msg, msg_len);
+
+    printf("\nMessage: [%s]\n",msg);  
+    printf("\nSignature length: [%d]\n",sig_len);  
+    if (sig_len>500) hexdump("Signature (truncated to 500 bytes):",sig,500);
+    else hexdump("Signature:",sig,sig_len);
+
+    OPENSSL_free(sig);
+
+    EVP_PKEY_CTX_free(sctx);
+}
+
+
+int main(int argc, char** argv) {
+
+
+    ERR_load_crypto_strings();
+    OpenSSL_add_all_algorithms();
+
+    unsigned char *type="SLH-DSA-SHA2-128f";
+    unsigned char *msg="Hello";
+    int msg_len=5;
+
+    if (argc > 1) type  =  argv[1];
+    if (argc > 2) msg  =  argv[2];
+
+    EVP_PKEY *key = generate_keys(type);
+    do_sign(key, msg, strlen(msg),type); 
+
+    return EXIT_SUCCESS;
+}
+
+/*
+Type: SLH-DSA-SHA2-128f
+
+Private key length: [64]
+Private key: (64 bytes): 4107251F1D3AB6A8FFE7B5663701AA6CE4AD90685D05FE6F859AF78138483D14DE6696A13478AE84F250BB32206A09D8658A71B6A91164A2913AFE51265AAA79
+
+Public key length: [32]
+Private key: (32 bytes): DE6696A13478AE84F250BB32206A09D8658A71B6A91164A2913AFE51265AAA79
+
+Message: [Hello World!]
+
+Signature length: [17088]
+Signature (truncated to 500 bytes): (500 bytes): 86E5E1A790695C98F4A133B324CDFEEF36F2B116D094249F742161B7098D66E5390189A524E294009B8A6C1E345912301646D41761E9FE29C9D91DB8367B5F2090E9D7E22261768AD6366CCAA87186C9D38DF709035961722A76A7495D4147E13C56AA84883706053709F4DBD447312629A59A772B0FE48AA14BDE3638ACF093520EB139A505741040E33BCAEB95AEDE778702D0AF53137EEEFD40111968E5D008C449ED0832721C8DC32E556A15B67068F7D2EC2906E00CD051EAC90FB00041636701731C3691E97697B995543D0654BC6F5561504C11C4383ECA5CDDDF7135C2AA08A2B1A1AE7954AD9CEE478261E7F4AC1C3A9AB8D769C9616B0B5C75F8AEF31FFB45600127E27435D5919E0A627182C8080275C36492A07A6766D24BEC39D2E486876D51C8D43BC5D2D2FF758656E0B1794E41FBDE0E1B675BB698443DAAF389A6BCC1ADA96F33F4AE35DEF09CC016AF63B750561B0D9D2B632C8843059A6F59AA6AD516EE6BC6B9FF5AA00F1EA89F2A18A65659245345E91928C8B6B852C96EBADCC7A9DB28F78B83F1CC5409AF5029310E2648932692363244D26FE6AC1FAED14C89EDE60B581D1F3C407FE1CA511218577F467B68DD1EBDE1215134B9A183207562EE1E0E1096DAFF335280A512EA41DAEA7A01EA13671716E91E2B920C4E128B17B70930A56BD8827B929F3A7A8664A0
+
+*/
