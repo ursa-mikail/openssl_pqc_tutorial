@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>  // Added for clock() and clock_t
 #include "oqs/oqs.h"
 
 void print_hex(const char* label, const uint8_t* data, size_t len) {
@@ -163,120 +162,6 @@ cleanup:
     if (signature) free(signature);
 }
 
-void benchmark_slh_dsa(const char* sig_name) {
-    if (!OQS_SIG_alg_is_enabled(sig_name)) {
-        return;
-    }
-    
-    OQS_SIG* sig = OQS_SIG_new(sig_name);
-    if (!sig) return;
-    
-    uint8_t* public_key = malloc(sig->length_public_key);
-    uint8_t* secret_key = malloc(sig->length_secret_key);
-    uint8_t* signature = malloc(sig->length_signature);
-    size_t signature_len;
-    
-    const char* message = "Benchmark message";
-    size_t message_len = strlen(message);
-    
-    printf("\n⏱️  Benchmarking %s:\n", sig_name);
-    
-    // Time key generation
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    
-    if (OQS_SIG_keypair(sig, public_key, secret_key) == OQS_SUCCESS) {
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        double time_taken = (end.tv_sec - start.tv_sec) * 1e9;
-        time_taken = (time_taken + (end.tv_nsec - start.tv_nsec)) * 1e-6; // Convert to milliseconds
-        printf("   Key generation: %.3f ms\n", time_taken);
-    }
-    
-    // Time signing
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    if (OQS_SIG_sign(sig, signature, &signature_len, 
-                    (const uint8_t*)message, message_len, secret_key) == OQS_SUCCESS) {
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        double time_taken = (end.tv_sec - start.tv_sec) * 1e9;
-        time_taken = (time_taken + (end.tv_nsec - start.tv_nsec)) * 1e-6;
-        printf("   Signing:        %.3f ms\n", time_taken);
-    }
-    
-    // Time verification
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    if (OQS_SIG_verify(sig, (const uint8_t*)message, message_len, 
-                      signature, signature_len, public_key) == OQS_SUCCESS) {
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        double time_taken = (end.tv_sec - start.tv_sec) * 1e9;
-        time_taken = (time_taken + (end.tv_nsec - start.tv_nsec)) * 1e-6;
-        printf("   Verification:   %.3f ms\n", time_taken);
-    }
-    
-    OQS_SIG_free(sig);
-    free(public_key);
-    free(secret_key);
-    free(signature);
-}
-
-// Simple timing without benchmarking if clock_gettime is not available
-void simple_demo_slh_dsa(const char* sig_name) {
-    if (!OQS_SIG_alg_is_enabled(sig_name)) {
-        printf("❌ %s is not enabled\n", sig_name);
-        return;
-    }
-    
-    OQS_SIG* sig = OQS_SIG_new(sig_name);
-    if (!sig) {
-        printf("❌ Failed to initialize %s\n", sig_name);
-        return;
-    }
-    
-    printf("\n🌳 Simple Demo: %s\n", sig_name);
-    printf("==================\n");
-    
-    uint8_t* public_key = malloc(sig->length_public_key);
-    uint8_t* secret_key = malloc(sig->length_secret_key);
-    uint8_t* signature = malloc(sig->length_signature);
-    size_t signature_len;
-    
-    const char* message = "Test message for SLH-DSA";
-    size_t message_len = strlen(message);
-    
-    // Key generation
-    printf("1. Generating keys... ");
-    if (OQS_SIG_keypair(sig, public_key, secret_key) == OQS_SUCCESS) {
-        printf("✅\n");
-    } else {
-        printf("❌\n");
-        goto cleanup;
-    }
-    
-    // Signing
-    printf("2. Signing message... ");
-    if (OQS_SIG_sign(sig, signature, &signature_len, 
-                    (const uint8_t*)message, message_len, secret_key) == OQS_SUCCESS) {
-        printf("✅ (%zu bytes)\n", signature_len);
-    } else {
-        printf("❌\n");
-        goto cleanup;
-    }
-    
-    // Verification
-    printf("3. Verifying signature... ");
-    if (OQS_SIG_verify(sig, (const uint8_t*)message, message_len, 
-                      signature, signature_len, public_key) == OQS_SUCCESS) {
-        printf("✅\n");
-    } else {
-        printf("❌\n");
-    }
-    
-cleanup:
-    OQS_SIG_free(sig);
-    free(public_key);
-    free(secret_key);
-    free(signature);
-}
-
 int main(int argc, char* argv[]) {
     printf("🎯 SLH-DSA (SPHINCS+) Signature Demonstration\n");
     printf("============================================\n");
@@ -313,19 +198,7 @@ int main(int argc, char* argv[]) {
     
     if (algorithm_to_use && OQS_SIG_alg_is_enabled(algorithm_to_use)) {
         printf("\n🎯 Using algorithm: %s\n", algorithm_to_use);
-        
-        // Choose which demo to run based on available timing functions
-        #ifdef CLOCK_MONOTONIC
         demonstrate_slh_dsa(algorithm_to_use);
-        // Benchmark a few algorithms if available
-        printf("\n📊 Performance Benchmarks:\n");
-        printf("=========================\n");
-        benchmark_slh_dsa("SLH-DSA-SHA2-128f");
-        benchmark_slh_dsa("SLH-DSA-SHA2-128s");
-        benchmark_slh_dsa("SLH-DSA-SHA2-192f");
-        #else
-        simple_demo_slh_dsa(algorithm_to_use);
-        #endif
     } else {
         printf("\n❌ No suitable SLH-DSA algorithms found!\n");
         printf("💡 Rebuild liboqs with SPHINCS+ support:\n");
