@@ -180,4 +180,20 @@ int main(int argc, char** argv) {
 }
 
 /*
+🚀 SLH-DSA Signature Demo
+=========================
+Using algorithm: SLH-DSA-SHA2-128f
+Using message: "Hello"
+🔐 Generating keys for: SLH-DSA-SHA2-128f
+✅ Private key length: 64 bytes
+Private key (64 bytes): 21CCD0D6BEB275D514BCE4BDBBA225FB80E2C66BAA379CCE2BD9AF4A2D407DC4...
+✅ Public key length: 32 bytes
+Public key (32 bytes): 0011B76588D78F28533E8299DFAF098EA8C0CCBE7AFAE14FAE3B482DD87502E4
+
+📝 Signing message with SLH-DSA-SHA2-128f
+Message: "Hello" (5 bytes)
+✅ Signature length: 17088 bytes
+Signature (17088 bytes): AEB92B796BEA9D198EF86AFF703E3D271C48392BE43245ECAD7190E665371D4D...
+
+🎉 SLH-DSA operations completed successfully!
 */
