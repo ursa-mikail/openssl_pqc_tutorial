@@ -25,15 +25,11 @@ SOURCES = slh_dsa_demo.c
 OBJECTS = $(SOURCES:.c=.o)
 
 # Default target
-all: check-deps $(TARGET)
+all: $(TARGET)
 
 # Main executable
-$(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(TARGET) $(LIB) $(LIBS)
-
-# Compile source files
-%.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
+$(TARGET): $(SOURCES)
+	$(CC) $(CFLAGS) $(INCLUDE) $(SOURCES) -o $(TARGET) $(LIB) $(LIBS)
 
 # Run the program
 run: $(TARGET)
@@ -52,27 +48,10 @@ test: $(TARGET)
 clean:
 	rm -f $(TARGET) $(OBJECTS)
 
-# Check dependencies
-check-deps:
-	@echo "🔍 Checking dependencies..."
-	@if [ -f "../lib/liboqs.a" ]; then \
-		echo "✅ liboqs found: ../lib/liboqs.a"; \
-	else \
-		echo "❌ liboqs not found: ../lib/liboqs.a"; \
-		exit 1; \
-	fi
-	@if [ -n "$(OPENSSL_LIB)" ]; then \
-		echo "✅ OpenSSL found: $(OPENSSL_LIB)"; \
-	else \
-		echo "❌ OpenSSL not found in standard locations"; \
-		echo "💡 Install with: brew install openssl"; \
-		exit 1; \
-	fi
-
-# Install OpenSSL if missing
-install-openssl:
-	@echo "📦 Installing OpenSSL via Homebrew..."
-	brew install openssl
+# Check what signature algorithms are available
+check-algorithms: $(TARGET)
+	@echo "🔍 Checking available signature algorithms..."
+	@./$(TARGET) 2>&1 | grep -A 20 "Available SLH-DSA"
 
 # Rebuild liboqs with SLH-DSA support
 rebuild-liboqs:
@@ -82,50 +61,14 @@ rebuild-liboqs:
 	make -j$(sysctl -n hw.ncpu) && \
 	echo "✅ liboqs rebuilt with SLH-DSA support!"
 
-# Debug build
-debug: CFLAGS += -DDEBUG -O0
-debug: $(TARGET)
-
-# Release build
-release: CFLAGS += -O2 -DNDEBUG
-release: $(TARGET)
-
-# Show build information
-info:
-	@echo "📋 Build Information"
-	@echo "==================="
-	@echo "Compiler: $(CC)"
-	@echo "CFLAGS: $(CFLAGS)"
-	@echo "Include: $(INCLUDE)"
-	@echo "Library: $(LIB)"
-	@echo "Libraries: $(LIBS)"
-
-# Run with specific algorithm
-run-128f: $(TARGET)
-	./$(TARGET) SLH-DSA-SHA2-128f
-
-run-128s: $(TARGET)
-	./$(TARGET) SLH-DSA-SHA2-128s
-
-run-192f: $(TARGET)
-	./$(TARGET) SLH-DSA-SHA2-192f
-
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  all            - Build the program (default)"
-	@echo "  run            - Build and run with default parameters"
-	@echo "  test           - Test SLH-DSA variants"
-	@echo "  clean          - Remove build files"
-	@echo "  check-deps     - Check dependencies"
-	@echo "  install-openssl - Install OpenSSL"
-	@echo "  rebuild-liboqs - Rebuild liboqs with SLH-DSA support"
-	@echo "  debug          - Build with debug flags"
-	@echo "  release        - Build with optimization flags"
-	@echo "  info           - Show build information"
-	@echo "  run-128f       - Run with SLH-DSA-SHA2-128f"
-	@echo "  run-128s       - Run with SLH-DSA-SHA2-128s"
-	@echo "  run-192f       - Run with SLH-DSA-SHA2-192f"
+	@echo "  all               - Build the program (default)"
+	@echo "  run               - Build and run with default parameters"
+	@echo "  test              - Test SLH-DSA variants"
+	@echo "  clean             - Remove build files"
+	@echo "  check-algorithms  - Check available signature algorithms"
+	@echo "  rebuild-liboqs    - Rebuild liboqs with SLH-DSA support"
 
-.PHONY: all run test clean check-deps install-openssl rebuild-liboqs debug release info help run-128f run-128s run-192f
-	
+.PHONY: all run test clean check-algorithms rebuild-liboqs help
