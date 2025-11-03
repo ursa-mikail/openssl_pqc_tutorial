@@ -1,7 +1,6 @@
-# Makefile for SLH-DSA Demo
+# Makefile for Post-Quantum Signatures Demo
 CC = clang
 CFLAGS = -Wall -Wextra -std=c99 -g
-LDFLAGS = 
 
 # liboqs paths
 OQS_INCLUDE = -I../include
@@ -20,55 +19,58 @@ INCLUDE = $(OQS_INCLUDE) $(OPENSSL_INCLUDE)
 LIB = $(OQS_LIB) $(OPENSSL_LIB)
 
 # Targets
-TARGET = slh_dsa_demo
-SOURCES = slh_dsa_demo.c
-OBJECTS = $(SOURCES:.c=.o)
+TARGET = pq_sig_demo
+SOURCES = slh_dsa_demo_fixed.c
 
 # Default target
-all: $(TARGET)
-
-# Main executable
-$(TARGET): $(SOURCES)
+all:
 	$(CC) $(CFLAGS) $(INCLUDE) $(SOURCES) -o $(TARGET) $(LIB) $(LIBS)
 
-# Run the program
-run: $(TARGET)
+# Run with default algorithm (ML-DSA-44)
+run: all
 	./$(TARGET)
 
-# Test different SLH-DSA variants
-test: $(TARGET)
-	@echo "🧪 Testing SLH-DSA Algorithms"
-	@echo "============================"
-	@for algo in "SLH-DSA-SHA2-128f" "SLH-DSA-SHA2-128s" "SLH-DSA-SHA2-192f"; do \
+# Test different algorithms
+test: all
+	@echo "🧪 Testing Available Algorithms"
+	@echo "==============================="
+	@for algo in "ML-DSA-44" "ML-DSA-65" "Falcon-512" "SPHINCS+-SHA2-128f-simple"; do \
 		echo "Testing $$algo..."; \
 		./$(TARGET) "$$algo" 2>/dev/null && echo "✅ $$algo: SUCCESS" || echo "❌ $$algo: FAILED"; \
 	done
 
-# Clean build files
+# Run specific algorithms
+run-mldsa44: all
+	./$(TARGET) ML-DSA-44
+
+run-mldsa65: all
+	./$(TARGET) ML-DSA-65
+
+run-falcon512: all
+	./$(TARGET) Falcon-512
+
+run-sphincs128: all
+	./$(TARGET) SPHINCS+-SHA2-128f-simple
+
+# Clean
 clean:
-	rm -f $(TARGET) $(OBJECTS)
+	rm -f $(TARGET)
 
-# Check what signature algorithms are available
-check-algorithms: $(TARGET)
-	@echo "🔍 Checking available signature algorithms..."
-	@./$(TARGET) 2>&1 | grep -A 20 "Available SLH-DSA"
+# Quick build
+quick:
+	$(CC) $(CFLAGS) -I../include $(SOURCES) -o $(TARGET) -L../lib -loqs -lcrypto
 
-# Rebuild liboqs with SLH-DSA support
-rebuild-liboqs:
-	@echo "🏗️  Rebuilding liboqs with SLH-DSA support..."
-	cd .. && rm -rf build && mkdir build && cd build && \
-	cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DOQS_ENABLE_SIG_SPHINCS=ON .. && \
-	make -j$(sysctl -n hw.ncpu) && \
-	echo "✅ liboqs rebuilt with SLH-DSA support!"
-
-# Help target
+# Help
 help:
 	@echo "Available targets:"
-	@echo "  all               - Build the program (default)"
-	@echo "  run               - Build and run with default parameters"
-	@echo "  test              - Test SLH-DSA variants"
-	@echo "  clean             - Remove build files"
-	@echo "  check-algorithms  - Check available signature algorithms"
-	@echo "  rebuild-liboqs    - Rebuild liboqs with SLH-DSA support"
+	@echo "  all              - Build the program"
+	@echo "  run              - Run with ML-DSA-44 (default)"
+	@echo "  test             - Test multiple algorithms"
+	@echo "  run-mldsa44      - Run with ML-DSA-44"
+	@echo "  run-mldsa65      - Run with ML-DSA-65"
+	@echo "  run-falcon512    - Run with Falcon-512"
+	@echo "  run-sphincs128   - Run with SPHINCS+-SHA2-128f-simple"
+	@echo "  clean            - Remove build files"
+	@echo "  quick            - Quick build"
 
-.PHONY: all run test clean check-algorithms rebuild-liboqs help
+.PHONY: all run test run-mldsa44 run-mldsa65 run-falcon512 run-sphincs128 clean quick help
