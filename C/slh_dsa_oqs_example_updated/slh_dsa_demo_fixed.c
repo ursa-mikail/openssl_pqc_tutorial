@@ -203,3 +203,38 @@ int main(int argc, char* argv[]) {
     printf("\n✨ Demonstration completed!\n");
     return 0;
 }
+
+/*
+
+✅ 221 of 221 signature algorithms enabled
+
+🎯 Using algorithm: ML-DSA-44
+
+🔐 Testing ML-DSA-44
+================
+✅ Algorithm: ML-DSA-44
+   Public key: 1312 bytes
+   Secret key: 2560 bytes
+   Signature: 2420 bytes
+1. 🔑 Generating key pair...
+✅ Key pair generated
+2. 📄 Message 1: "This document demonstrates post-quantum cryptography" (52 bytes)
+3. ✍️  Signing message 1...
+✅ Message 1 signed
+   Signature (2420 bytes): 35f2ddbeb76d9c9def79dff686d50baaf7f51f72ce7ad7dacbeded0ed42574b4...
+4. ✅ Verifying signature 1...
+✅ Signature 1 verified successfully!
+5. 📄 Message 2: "Second message with different content for testing" (49 bytes)
+   ✍️  Signing message 2...
+✅ Message 2 signed
+✅ Signature 2 verified successfully!
+6. 🔒 Testing tamper detection...
+✅ SUCCESS: Tampered message correctly rejected
+
+💡 Algorithm Information:
+   • ML-DSA (Dilithium) - Lattice-based signatures
+   • Moderate signature sizes
+   • Good performance balance
+
+✨ Demonstration completed!
+*/
