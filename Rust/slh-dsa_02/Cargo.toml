@@ -1,0 +1,10 @@
+[package]
+name = "slh_dsa"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hex = "0.4.3"
+slh-dsa = "=0.1.0"
+rand = "0.8.5"
+signature = "=2.3.0-pre.4"
